@@ -157,6 +157,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 #ac-list::-webkit-scrollbar{width:4px}
 #ac-list::-webkit-scrollbar-thumb{background:#30363d;border-radius:4px}
+
+/* ====== DRAG & DROP ====== */
+.kcard[draggable]{cursor:grab}
+.kcard[draggable]:active{cursor:grabbing}
+.kcard.dragging{opacity:0.35;transform:scale(0.97);box-shadow:none!important;border-style:dashed!important}
+.kcard.drag-over-top{border-top:3px solid #388bfd!important;margin-top:2px}
+.kcard.drag-over-bot{border-bottom:3px solid #388bfd!important;margin-bottom:2px}
+.col-body.drag-over-empty{background:rgba(56,139,253,.08);border:2px dashed #388bfd;border-radius:10px}
+.drag-handle{display:inline-flex;align-items:center;cursor:grab;color:#444;font-size:16px;padding:4px 6px 4px 2px;touch-action:none;user-select:none;flex-shrink:0}
+.drag-handle:hover{color:#888}
+
 </style>
 </head>
 <body>
@@ -369,6 +380,85 @@ function mkPrazoBadge(data_prazo){
   }catch(e){return"";}
 }
 
+
+// ====== DRAG & DROP ======
+var _dragIdx = null;
+
+function dragStart(ev, idx){
+  _dragIdx = idx;
+  ev.dataTransfer.effectAllowed = "move";
+  ev.dataTransfer.setData("text/plain", idx);
+  setTimeout(function(){ 
+    var el = document.querySelector("[data-idx='"+idx+"']");
+    if(el) el.classList.add("dragging");
+  }, 0);
+}
+
+function dragEnd(ev){
+  document.querySelectorAll(".kcard").forEach(function(el){
+    el.classList.remove("dragging","drag-over-top","drag-over-bot");
+  });
+  document.querySelectorAll(".col-body").forEach(function(el){
+    el.classList.remove("drag-over-empty");
+  });
+  _dragIdx = null;
+}
+
+function dragOver(ev){
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = "move";
+  var target = ev.currentTarget;
+  var rect = target.getBoundingClientRect();
+  var mid = rect.top + rect.height / 2;
+  target.classList.remove("drag-over-top","drag-over-bot");
+  if(ev.clientY < mid){
+    target.classList.add("drag-over-top");
+  } else {
+    target.classList.add("drag-over-bot");
+  }
+}
+
+function dragLeave(ev){
+  ev.currentTarget.classList.remove("drag-over-top","drag-over-bot");
+}
+
+function dragDrop(ev, targetIdx){
+  ev.preventDefault();
+  if(_dragIdx === null || _dragIdx === targetIdx) return;
+
+  var srcCard = document.querySelector("[data-idx='"+targetIdx+"']");
+  var below = srcCard ? srcCard.classList.contains("drag-over-bot") : false;
+
+  // Descobrir a coluna alvo pelo status do card de destino
+  var targetStatus = D[targetIdx] ? D[targetIdx].status : null;
+
+  // Mover no array D
+  var item = D.splice(_dragIdx, 1)[0];
+
+  // Recalcular targetIdx após remoção
+  var newTarget = D.indexOf(D.filter(function(x,i){ return i === (targetIdx > _dragIdx ? targetIdx-1 : targetIdx); })[0]);
+
+  // Simples: calcular posição correta
+  var adjTarget = targetIdx > _dragIdx ? targetIdx - 1 : targetIdx;
+
+  // Atualizar status se mudou de coluna
+  if(targetStatus && targetStatus !== item.status){
+    var agora = new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+    var usuario = MODO === "p" ? "Paulo" : "Matheus";
+    item.status = targetStatus;
+    item.data_atualizacao = new Date().toISOString().split("T")[0];
+    if(!item.historico) item.historico = "";
+    item.historico += (item.historico?"\n":"") + "["+agora+"] "+usuario+": Status alterado para "+targetStatus+" (movido no quadro)";
+    if(targetStatus === "Pendência PH"){ item.prioridade = true; }
+  }
+
+  // Inserir na posição correta
+  var insertAt = below ? adjTarget + 1 : adjTarget;
+  D.splice(insertAt, 0, item);
+
+  renderBoard();
+}
+
 function renderBoard(){
   var lista=filtrar();
   var bd=document.getElementById("board");
@@ -415,7 +505,10 @@ function mkCard(x,idx){
   var d=dias(x.data_atualizacao),al=x.status!=="Finalizado"&&d>=10;
   var nm=contMov(x);
   var cls="kcard"+(x.prioridade?" pri":"")+(al?" alerta":"");
-  var h="<div class='"+cls+"' id='kc-"+idx+"'>";
+  var h="<div class='"+cls+"' id='kc-"+idx+"' draggable='true' data-idx='"+idx+"' ondragstart='dragStart(event,"+idx+")' ondragend='dragEnd(event)' ondragover='dragOver(event)' ondrop='dragDrop(event,"+idx+")' ondragleave='dragLeave(event)'>";
+  h+="<div class='kcard-drag-row' style='display:flex;align-items:center;justify-content:flex-end;padding:4px 6px 0 6px'>";
+  h+="<span class='drag-handle' title='Arrastar para reordenar'>⠿</span>";
+  h+="</div>";
   h+="<div class='kcard-top'>";
   h+="<div class='kcard-info' onclick='abrirModal("+idx+")'>";
   h+="<div class='kcard-nome'>"+esc(x.razao_social)+"</div>";
