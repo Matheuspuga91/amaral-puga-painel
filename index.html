@@ -149,6 +149,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .confirm-btns{display:flex;gap:8px;justify-content:center}
 .btn-del{padding:9px 20px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
 .btn-cancel{padding:9px 16px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:8px;font-size:13px;cursor:pointer}
+
+#ac-list::-webkit-scrollbar{width:4px}
+#ac-list::-webkit-scrollbar-thumb{background:#30363d;border-radius:4px}
 </style>
 </head>
 <body>
@@ -213,7 +216,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="overlay" id="overlay-np" onclick="fecharNP(event)">
  <div class="modal-np" id="modal-np">
   <h3>➕ Novo Processo <button onclick="fecharNP()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer">✕</button></h3>
-  <div class="field"><label>Razão Social *</label><input type="text" id="np-nome" placeholder="Nome da empresa"></div>
+  <div class="field" style="position:relative">
+   <label>Razão Social *</label>
+   <input type="text" id="np-nome" placeholder="Digite para buscar empresa..." autocomplete="off" oninput="filtrarClientes(this.value)" onfocus="filtrarClientes(this.value)" onblur="setTimeout(function(){document.getElementById('ac-list').style.display='none'},200)">
+   <div id="ac-list" style="display:none;position:absolute;top:100%;left:0;right:0;background:#21262d;border:1px solid #388bfd;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.6)"></div>
+  </div>
   <div class="field"><label>CNPJ</label><input type="text" id="np-cnpj" placeholder="00.000.000/0001-00"></div>
   <div class="field"><label>Tese *</label><input type="text" id="np-tese" placeholder="Tese tributária"></div>
   <div class="field"><label>Nº Processo</label><input type="text" id="np-num" placeholder="0000000-00.0000.0.00.0000"></div>
@@ -560,6 +567,36 @@ function mkTimeline(x){
   }
   return h+"</div>";
 }
+
+var CLIENTES=[{"n": "3J TRANSPORTE E SERVICOS LTDA", "c": ""}, {"n": "3M COMERCIO DE FRUTAS LTDA", "c": ""}, {"n": "ADIAL - ASSOCIACAO PRO - DESENVOLVIMENTO INDUSTR DO EST GOIAS", "c": ""}, {"n": "AJ TRANSPORTES E LOCACOES LTDA", "c": ""}, {"n": "AKRON PHARMA S/A", "c": ""}, {"n": "AMBEV S.A", "c": ""}, {"n": "ARCO IRIS PETR\u00d3LEO COMERCIO E SERVICOS LTDA (Gustavo)", "c": ""}, {"n": "ARROZ IMPERIAL LTDA", "c": ""}, {"n": "ARTE TRIGO INDUSTRIAL LTDA - ME", "c": ""}, {"n": "AUTO POSTO ALEMAO (JO'SE CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO BRISA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO CENTRO OESTE LTDA (Gabriel)", "c": ""}, {"n": "AUTO POSTO COMERCIAL GITIRANA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO DERIVADOS DE PETROLEO CALIFORNIA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO ESMERALDAS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO G & REZENDE (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO LEONEL (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO M-04 LTDA (Murilo)", "c": ""}, {"n": "AUTO POSTO MOZARLANDIA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO NOVA CRIXAS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO NOVA ESPERAN\u00c7A 04 (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO VEIGA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AVICULTURA INDUSTRIAL JOSIDITH LTDA S/A", "c": ""}, {"n": "BAGOLELE SORVETES INDUSTRIA E COMERCIO LTADA", "c": ""}, {"n": "BELMA INDUSTRIAL DE GENEROS ALIMENTICIOS LTDA", "c": ""}, {"n": "BIO INSTINTO INDUSTRIA E COMERCIO DE COSMETICOS LTDA", "c": ""}, {"n": "BLUE EMPREENDIMENTOS E PARTICIPACOES LTDA (CERVEJA PROIBIDA)", "c": ""}, {"n": "BORGES DAHER COM\u00c9RCIO DE DERIVADOS DE PETR\u00d3LEO LTDA - ME", "c": ""}, {"n": "BRASIL PETRO COMERCIO DE COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "BRG BRASIL GERADORES LTDA", "c": ""}, {"n": "CAF\u00c9 MOINHO FINO (Dicasa Industria e Comercio de Alimentos Ltda)", "c": ""}, {"n": "CARAMURU ALIMENTOS S/A", "c": ""}, {"n": "CARPER INDUSTRIA E COMERCIO DE PRODUTOS ALIMENTICIOS E BEBIDAS LTDA", "c": ""}, {"n": "CENTRO AIDAR INDUSTRIA E COMERCIO DE BEBIDAS LTDA (Elias Aidar)", "c": ""}, {"n": "CENTRO FORTE DISTRIBUI\u00c7\u00c30 DE ALIMENTOS LTDA", "c": ""}, {"n": "CENTRO OESTE OLEO QUIMICA LTDA (PRODUTOS OESTE HIGIENE E LIMPEZA)", "c": ""}, {"n": "CENTROX INDUSTRIA E COMERCIO LTDA", "c": ""}, {"n": "CERVEJARIA CIDADE IMPERIAL S/A", "c": ""}, {"n": "CICOPAL INDUSTRIA E COMERCIO DE PRODUTOS ALIMENTICIOS E HIGIENE PESSOAL LTDA", "c": ""}, {"n": "CMP METALGRAPHICA PAULISTA LTDA", "c": ""}, {"n": "COIMBRA IMPORTACAO E EXPORTACAO LTDA", "c": ""}, {"n": "COMERCIAL DE DERIVADOS DE PETR\u00d3LEO S\u00c3O CARLOS LTDA (POSTO PRESIDENTE)", "c": ""}, {"n": "CRYSTAL INDUSTRIA E COMERCIO DE BEBIDAS E ALIMENTOS LTDA (Elias Aidar)", "c": ""}, {"n": "D QUALIDADE INDUSTRIA E COMERCIO LTDA", "c": ""}, {"n": "DISTRIBUIDORA DE OVOS S\u00c3O JORGE LTDA", "c": ""}, {"n": "F G COMERCIAL DE ALIMENTOS LTDA (FLORESTA SUPERMERCADO)", "c": ""}, {"n": "FEIRA BOA INDUSTRIA DE PRODUTOS ALIMENTICIOS LTDA incorporada pela \nVVC EMPREENDIMENTOS LTDA (Holding)", "c": ""}, {"n": "FERREIRA & FERREIRA COLETORA DE RESIDUOS LTDA (TUPY)", "c": ""}, {"n": "FERRO E ACO ELDORADO INDUSTRIA E COMERCIO LTDA", "c": ""}, {"n": "FIBRAS TANQUES E PIAS LTDA", "c": ""}, {"n": "FLORAX E GLOBO COMERCIO DE PAPEIS", "c": ""}, {"n": "FLX TRANSPORTES LTDA", "c": ""}, {"n": "FORT ATACADO DE SECOS E MOLHADOS LTDA", "c": ""}, {"n": "GEOLAB IND\u00daSTRIA FARMAC\u00caUTICA S/A", "c": ""}, {"n": "GOIAS ALIMENTOS S/A", "c": ""}, {"n": "GOLD PACK EMBALAGENS", "c": ""}, {"n": "GOPA INDUSTRIA E COMERCIO DE BEBIDAS LTDA", "c": ""}, {"n": "GRANJA JOSIDHT LTDA", "c": ""}, {"n": "I. S. G CABRAL TRANSPORTES LTDA", "c": ""}, {"n": "ISAAC E MACEDO LTDA - P\u00c3O GUARANY", "c": ""}, {"n": "J.D. DISTRIBUIDORA DE ALIMENTOS LTDA", "c": ""}, {"n": "JC DISTRIBUICAO LOGISTICA IMPORTACAO E EXPORTACAO DE PRODUTOS INDUSTRIALIZADOS SA", "c": ""}, {"n": "JK MATERIAIS DE CONSTRU\u00c7\u00c3O", "c": ""}, {"n": "KOLORE INDUSTRIA E COMERCIO LTDA", "c": ""}, {"n": "L C LOGISTICA DE COMERCIO DE COMBUSTIVEL (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "L T LOGISTICA DE COMERCIO DE COMBUSTIVEL (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "MA DISTRIBUI\u00c7\u00c3O DE ALIMENTOS LTDA", "c": ""}, {"n": "MARAJOARA IND\u00daSTRIA DE LATIC\u00cdNIOS LTDA", "c": ""}, {"n": "MARIM CENTRAL DE ALIMENTOS LTDA", "c": ""}, {"n": "MAX DISTRIBUIDORA (AMIGO JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "MILHAO INDUSTRIA E COMERCIO DE INGREDIENTES E CEREAIS S.A.", "c": ""}, {"n": "MODENA\u00a0&\u00a0SILVA\u00a0LTDA - ME", "c": ""}, {"n": "MONTENEGRO COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "NORTE SUL PNEUS (IBRAIM)", "c": ""}, {"n": "NOVA CASA DISTRIBUIDORA DE MATERIAIS PARA CONSTRUCAO S/A", "c": ""}, {"n": "PADRA E OLIVEIRA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "PALO ALTO COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "PASADENA COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "PEAK AUTOMOTIVA LTDA", "c": ""}, {"n": "PLUMATEX COLCHOES INDUSTRIAL LTDA", "c": ""}, {"n": "PORTO & PEREIRA LTDA", "c": ""}, {"n": "POSTO E AUTO PE\u00c7AS ALTENSE (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "POSTO LAGOA BONITA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "POSTO MANGUEIRAO LTDA (Murilo)", "c": ""}, {"n": "POSTO MONTENEGRO (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "POSTO NOSSA SENHORA DO CARMO (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "POSTO VALE DO ARAGUAIA LTDA (Murilo)", "c": ""}, {"n": "PREMIUM COMERCIP DE COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "PRIME DERIVADOS DE PETROLEO LTDA (Gustavo)", "c": ""}, {"n": "PUJANTE TRANSPORTES LTDA", "c": ""}, {"n": "REDE BRASIL DISTRIBUICAO E LOGISTICA LTDA", "c": ""}, {"n": "RIO VERMELHO DISTRIBUI\u00c7\u00c3O DE ALIMENTOS LTDA", "c": ""}, {"n": "ROAN ALIMENTOS LTDA", "c": ""}, {"n": "RODA MAIS PNEUS (IBRAIM)", "c": ""}, {"n": "ROSA DE OURO DISTRIBUICAO E LOGISTICA LTDA", "c": ""}, {"n": "SABOR E ARTE - Quality Industria de Alimentos Ltda", "c": ""}, {"n": "SACRAMENTO COMBUSTIVEIS E LUBRIFICANTES (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "SANTO ANT\u00d4NIO HIPERMERCADO", "c": ""}, {"n": "SILVA LINHARES E DINIZ (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "SINDICATO DA INDUSTRIA DA ALIMENTACAO DE ANAPOLIS", "c": ""}, {"n": "SNACKS PRODUTOS ALIMENTICIOS LTDA", "c": ""}, {"n": "SUPER VI DISTRIBUIDOR DE ALIMENTOS LTDA", "c": ""}, {"n": "SUPERMERCADO DS LTDA (Contador Carlinhos)", "c": ""}, {"n": "SUPERMERCADO MOREIRA LTDA", "c": ""}, {"n": "S\u00c3O BERNARDINO COMBUST\u00cdVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "S\u00c3O SALVADOR ALIMENTOS S/A", "c": ""}, {"n": "TRR KRUPINSKI - Com\u00e9rcio de Combust\u00edveis Krupinski Ltda", "c": ""}, {"n": "TR\u00caS BARRAS COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "TUPY GERENCIAMENTO DE RESIDUOS E RECICLAGEM LTDA", "c": ""}, {"n": "TUPY TRANSPORTES DE RESIDUOS LTDA.", "c": ""}, {"n": "VIA CARPE INDUSTRIA E COM\u00c9RCIO DE PRODUTOS ALIMENT\u00cdCIOS LTDA", "c": ""}, {"n": "VIT\u00d3RIA COMBUST\u00cdVEIS LTDA-ME (Murilo)", "c": ""}, {"n": "WE PINK SAVI COSMESTICOS LTDA", "c": ""}, {"n": "WPINK SUPLEMENTOS NUTRICIONAIS LTDA", "c": ""}, {"n": "ZALTANA INDUSTRIA E COMERCIO DE ALIMENTOS S/A", "c": ""}];
+
+function filtrarClientes(q){
+  var list=document.getElementById('ac-list');
+  if(!list)return;
+  q=(q||'').trim().toUpperCase();
+  var res=q?CLIENTES.filter(function(c){return c.n.toUpperCase().indexOf(q)>=0;}):CLIENTES.slice(0,15);
+  if(!res.length){list.style.display='none';return;}
+  list.innerHTML=res.slice(0,20).map(function(c){
+    return "<div style='padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #30363d;transition:.15s' "+
+      "onmouseover=\"this.style.background='#2d333b'\" "+
+      "onmouseout=\"this.style.background=''\" "+
+      "onclick=\"selecionarCliente('"+c.n.replace(/'/g,"\\'")+"','"+c.c.replace(/'/g,"\\'")+"')\">"+
+      "<span style='color:#e6edf3;font-weight:600'>"+c.n+"</span>"+
+      (c.c?"<span style='color:#8b949e;font-size:11px;margin-left:8px'>"+c.c+"</span>":"")+
+      "</div>";
+  }).join('');
+  list.style.display='block';
+}
+
+function selecionarCliente(nome, cnpj){
+  var n=document.getElementById('np-nome');
+  var c=document.getElementById('np-cnpj');
+  if(n)n.value=nome;
+  if(c)c.value=cnpj;
+  var list=document.getElementById('ac-list');
+  if(list)list.style.display='none';
+}
+
 document.getElementById("pwd").addEventListener("keydown",function(e){if(e.key==="Enter")entrar();});
 document.getElementById("usr").addEventListener("keydown",function(e){if(e.key==="Enter")document.getElementById("pwd").focus();});
 </script>
