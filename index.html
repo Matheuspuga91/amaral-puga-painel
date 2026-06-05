@@ -77,11 +77,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rem-btn{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.3);color:var(--red);border-radius:6px;font-size:11px;font-weight:600;padding:4px 9px;cursor:pointer;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:3px}
 .rem-btn:hover{background:rgba(248,81,73,.2);border-color:var(--red)}
 .kcard-foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;margin-top:8px}
-.prazo-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:6px}
-.prazo-ok{background:rgba(63,185,80,.15);color:#3fb950;border:1px solid rgba(63,185,80,.35)}
-.prazo-aviso{background:rgba(227,179,65,.15);color:#e3b341;border:1px solid rgba(227,179,65,.35)}
-.prazo-urgente{background:rgba(248,81,73,.2);color:#f85149;border:1px solid rgba(248,81,73,.5);animation:pulsar .9s ease-in-out infinite alternate}
-@keyframes pulsar{from{opacity:1}to{opacity:.6}}
 .kcard-acoes{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .btn-mov{flex:1;padding:6px 10px;background:rgba(31,111,235,.1);border:1px solid rgba(31,111,235,.3);color:var(--blue2);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;text-align:center}
 .btn-mov:hover{background:rgba(31,111,235,.2);border-color:var(--blue2)}
@@ -92,6 +87,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .kcard-dt{font-size:10px;color:var(--text2)}
 .kcard-dt.at{color:var(--red);font-weight:700}
 .kcard-obs{font-size:11px;color:var(--text2);margin-top:7px;padding-top:7px;border-top:1px solid var(--border);line-height:1.5}
+.prazo-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:6px}
+.prazo-ok{background:rgba(63,185,80,.12);color:#3fb950;border:1px solid rgba(63,185,80,.4)}
+.prazo-urgente{background:rgba(227,179,65,.15);color:#e3b341;border:1px solid rgba(227,179,65,.5)}
+.prazo-vencido{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.5);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 .empty-col{font-size:12px;color:var(--text2);text-align:center;padding:20px;font-style:italic}
 .btn-add-card{width:100%;padding:9px;border:1px dashed var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;cursor:pointer;transition:.15s;text-align:center;margin-top:4px}
 .btn-add-card:hover{border-color:var(--blue2);color:var(--blue2);background:rgba(31,111,235,.05)}
@@ -204,7 +204,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="modal-nome" id="m-nome"></div>
     <div class="modal-tese" id="m-tese"></div>
     <div class="modal-num" id="m-num"></div>
-   <div id="m-prazo-wrap" style="margin-top:6px"></div>
    </div>
    <div class="modal-btns">
     <button class="modal-star" id="m-star" onclick="togStarModal()" title="Adicionar/remover da fila do Paulo">☆</button>
@@ -230,6 +229,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="field"><label>CNPJ</label><input type="text" id="np-cnpj" placeholder="00.000.000/0001-00"></div>
   <div class="field"><label>Tese *</label><input type="text" id="np-tese" placeholder="Tese tributária"></div>
   <div class="field"><label>Nº Processo</label><input type="text" id="np-num" placeholder="0000000-00.0000.0.00.0000"></div>
+  <div class="field">
+   <label>📅 Prazo / Data do Compromisso</label>
+   <input type="date" id="np-prazo" style="color-scheme:dark">
+   <div style="font-size:11px;color:#8b949e;margin-top:5px">Se informado, cria evento automático no Google Calendar</div>
+  </div>
   <div class="field"><label>Status</label>
    <select id="np-status">
     <option>Não Iniciado</option>
@@ -241,7 +245,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
    </select>
   </div>
   <div class="field"><label>Observação inicial</label><textarea id="np-obs" rows="3" placeholder="Observação..."></textarea></div>
-  <div class="field"><label>📅 Prazo / Data do compromisso</label><input type="date" id="np-prazo"></div>
   <div class="form-btns" style="margin-top:4px">
    <button class="btn-sv" onclick="salvarNovo()">✓ Adicionar Processo</button>
    <button class="btn-cl" onclick="fecharNP()">Cancelar</button>
@@ -289,22 +292,6 @@ function toast(msg,cor){
 function dias(d){if(!d)return 999;try{return Math.floor((Date.now()-new Date(d).getTime())/864e5);}catch(e){return 999;}}
 function esc(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function gc(st){return COR[st]||{bg:"rgba(139,148,158,.1)",c:"#8b949e",bdr:"rgba(139,148,158,.3)"};}
-
-function mkPrazoBadge(data_prazo){
-  if(!data_prazo)return"";
-  try{
-    var hoje=new Date(); hoje.setHours(0,0,0,0);
-    var prazo=new Date(data_prazo+"T00:00:00"); prazo.setHours(0,0,0,0);
-    var diff=Math.round((prazo-hoje)/864e5);
-    var fmt=data_prazo.split("-").reverse().join("/");
-    if(diff<0) return"<span class='prazo-badge prazo-urgente'>⚠️ VENCIDO "+fmt+"</span>";
-    if(diff===0) return"<span class='prazo-badge prazo-urgente'>🔴 HOJE "+fmt+"</span>";
-    if(diff<=3) return"<span class='prazo-badge prazo-urgente'>🔴 "+diff+"d — "+fmt+"</span>";
-    if(diff<=7) return"<span class='prazo-badge prazo-aviso'>🟡 "+diff+"d — "+fmt+"</span>";
-    return"<span class='prazo-badge prazo-ok'>📅 "+fmt+"</span>";
-  }catch(e){return"";}
-}
-
 function contMov(x){
   if(!x.historico||!x.historico.trim())return 0;
   var t=x.historico.trim();
@@ -366,6 +353,22 @@ function filtrar(){
   if(b) l=l.filter(function(x){return(x.razao_social||"").toLowerCase().indexOf(b)>=0||(x.tese||"").toLowerCase().indexOf(b)>=0;});
   return l;
 }
+
+function mkPrazoBadge(data_prazo){
+  if(!data_prazo)return"";
+  try{
+    var hoje=new Date();hoje.setHours(0,0,0,0);
+    var prazo=new Date(data_prazo+"T00:00:00");prazo.setHours(0,0,0,0);
+    var diff=Math.round((prazo-hoje)/864e5);
+    var fmt=data_prazo.split("-").reverse().join("/");
+    if(diff<0)return"<span class='prazo-badge prazo-urgente'>⚠️ VENCIDO "+fmt+"</span>";
+    if(diff===0)return"<span class='prazo-badge prazo-urgente'>🔴 HOJE "+fmt+"</span>";
+    if(diff<=3)return"<span class='prazo-badge prazo-urgente'>🔴 "+diff+"d — "+fmt+"</span>";
+    if(diff<=7)return"<span class='prazo-badge prazo-aviso'>🟡 "+diff+"d — "+fmt+"</span>";
+    return"<span class='prazo-badge prazo-ok'>📅 "+fmt+"</span>";
+  }catch(e){return"";}
+}
+
 function renderBoard(){
   var lista=filtrar();
   var bd=document.getElementById("board");
@@ -436,6 +439,7 @@ function mkCard(x,idx){
   h+="</div>";
   h+="<div class='kcard-dt"+(al?" at":"")+"'>"+(nm>0?"💬 "+nm:"")+"</div>";
   h+="</div>";
+  if(x.data_prazo)h+=prazoBadge(x.data_prazo);
   if(x.observacao){h+="<div class='kcard-obs'>"+esc(x.observacao.substring(0,100))+(x.observacao.length>100?"…":"")+"</div>";}
   h+="</div>";
   if(MODO==="m"){
@@ -453,7 +457,6 @@ function abrirModal(idx){
   document.getElementById("m-nome").textContent=x.razao_social||"";
   document.getElementById("m-tese").textContent=x.tese||"";
   document.getElementById("m-num").textContent=x.numero_processo?"📋 "+x.numero_processo:"";
-  document.getElementById("m-prazo-wrap").innerHTML=x.data_prazo?mkPrazoBadge(x.data_prazo):"";
   document.getElementById("m-star").textContent=x.prioridade?"⭐":"☆";
   document.getElementById("m-cnt").textContent=contMov(x);
   document.getElementById("m-timeline").innerHTML=mkTimeline(x);
@@ -509,6 +512,7 @@ function abrirNP(col){
   document.getElementById("np-tese").value="";
   document.getElementById("np-num").value="";
   document.getElementById("np-obs").value="";
+  var prazoEl=document.getElementById("np-prazo");if(prazoEl)prazoEl.value="";
   document.getElementById("overlay-np").classList.add("show");
 }
 function fecharNP(ev){
@@ -520,26 +524,50 @@ function salvarNovo(){
   var tese=(document.getElementById("np-tese").value||"").trim();
   if(!nome||!tese){toast("⚠️ Razão Social e Tese são obrigatórios","#f85149");return;}
   var agora=new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  var prazo=(document.getElementById("np-prazo").value||"").trim();
   var obs=(document.getElementById("np-obs").value||"").trim();
-  var prazo=(document.getElementById("np-prazo")?document.getElementById("np-prazo").value||"":"");
-  var histBase="["+agora+"] Matheus: Processo cadastrado";
-  if(obs) histBase+="\n["+agora+"] Matheus: Pendência PH | "+obs;
+  var st=document.getElementById("np-status").value;
+  var histInicial="["+agora+"] Matheus: Processo cadastrado";
+  if(prazo){
+    var pBR=prazo.split("-").reverse().join("/");
+    histInicial+=" | Prazo: "+pBR;
+  }
+  if(obs) histInicial+="\n["+agora+"] Matheus: "+st+" | "+obs;
   var novo={
     razao_social:nome,
     cnpj:(document.getElementById("np-cnpj").value||"").trim(),
     tese:tese,
     numero_processo:(document.getElementById("np-num").value||"").trim(),
-    status:document.getElementById("np-status").value,
+    status:st,
     observacao:obs,
-    prioridade:document.getElementById("np-status").value==="Pendência PH",
-    data_prazo:prazo,
+    prioridade:st==="Pendência PH",
+    data_prazo:prazo||"",
     data_atualizacao:new Date().toISOString().split("T")[0],
-    historico:histBase
+    historico:histInicial
   };
   D.push(novo);
   fecharNP();
   toast("✅ Processo adicionado: "+nome,"#3fb950");
   renderBoard();
+  // Criar evento no Google Calendar se tiver prazo
+  if(prazo){
+    var payload={
+      razao_social:nome,tese:tese,
+      numero_processo:novo.numero_processo,
+      data_prazo:prazo,observacao:obs,status:st
+    };
+    fetch("https://api.base44.com/api/apps/6a0e3ef6bb37789b7478edbb/functions/criarEventoCalendar",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload)
+    }).then(function(r){return r.json();}).then(function(res){
+      if(res.ok){
+        toast("📅 Evento criado no Google Calendar!","#3fb950");
+      } else {
+        console.warn("Calendar erro:",res.error);
+      }
+    }).catch(function(e){console.warn("Calendar fetch erro:",e);});
+  }
 }
 // REMOVER CARD
 function pedirRemocao(idx,ev){
@@ -625,6 +653,19 @@ function selecionarCliente(nome, cnpj){
   if(c)c.value=cnpj;
   var list=document.getElementById('ac-list');
   if(list)list.style.display='none';
+}
+
+
+function prazoBadge(prazo){
+  if(!prazo)return"";
+  var hoje=new Date();hoje.setHours(0,0,0,0);
+  var dt=new Date(prazo+"T00:00:00");dt.setHours(0,0,0,0);
+  var diff=Math.round((dt-hoje)/864e5);
+  var pBR=prazo.split("-").reverse().join("/");
+  if(diff<0) return"<span class='prazo-badge prazo-vencido'>📅 VENCIDO "+pBR+"</span>";
+  if(diff===0) return"<span class='prazo-badge prazo-vencido'>📅 HOJE "+pBR+"</span>";
+  if(diff<=3) return"<span class='prazo-badge prazo-urgente'>📅 "+diff+"d — "+pBR+"</span>";
+  return"<span class='prazo-badge prazo-ok'>📅 "+diff+"d — "+pBR+"</span>";
 }
 
 document.getElementById("pwd").addEventListener("keydown",function(e){if(e.key==="Enter")entrar();});
