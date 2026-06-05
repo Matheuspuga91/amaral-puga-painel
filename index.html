@@ -168,6 +168,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .drag-handle{display:inline-flex;align-items:center;cursor:grab;color:#444;font-size:16px;padding:4px 6px 4px 2px;touch-action:none;user-select:none;flex-shrink:0}
 .drag-handle:hover{color:#888}
 
+
+/* ====== EDIÇÃO DE DADOS DO PROCESSO ====== */
+.edit-campos{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.edit-campos h4{color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin:0 0 12px 0;font-weight:600}
+.edit-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.edit-row:last-child{margin-bottom:0}
+.edit-row label{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.edit-row input,.edit-row select{background:#161b22;border:1px solid var(--border);border-radius:7px;color:var(--text);padding:8px 10px;font-size:13px;width:100%;box-sizing:border-box;transition:border .15s}
+.edit-row input:focus,.edit-row select:focus{outline:none;border-color:#388bfd;background:#0d1117}
+.btn-salvar-dados{background:#238636;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;transition:background .15s}
+.btn-salvar-dados:hover{background:#2ea043}
+.toggle-edit{background:none;border:1px solid var(--border);border-radius:7px;color:var(--text2);font-size:12px;cursor:pointer;padding:5px 12px;margin-bottom:10px;transition:all .15s}
+.toggle-edit:hover{border-color:#388bfd;color:#388bfd}
+
 </style>
 </head>
 <body>
@@ -222,6 +236,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
    </div>
   </div>
   <div class="modal-body">
+   <button class="toggle-edit" id="btn-toggle-edit" onclick="toggleEditDados()">✏️ Editar dados do processo</button>
+   <div class="edit-campos" id="edit-dados-section" style="display:none">
+    <h4>✏️ Editar Dados do Processo</h4>
+    <div class="edit-row"><label>Razão Social</label><input type="text" id="ed-nome"></div>
+    <div class="edit-row"><label>Tese</label><input type="text" id="ed-tese"></div>
+    <div class="edit-row"><label>Nº Processo</label><input type="text" id="ed-num" placeholder="0000000-00.0000.0.00.0000"></div>
+    <div class="edit-row"><label>CNPJ</label><input type="text" id="ed-cnpj" placeholder="00.000.000/0000-00"></div>
+    <div class="edit-row"><label>Honorários</label><input type="text" id="ed-honor" placeholder="Ex: 20%"></div>
+    <div class="edit-row"><label>📅 Prazo / Data</label><input type="date" id="ed-prazo"></div>
+    <div class="edit-row"><label>Status</label><select id="ed-status"></select></div>
+    <button class="btn-salvar-dados" onclick="salvarDadosModal()">💾 Salvar Dados</button>
+   </div>
    <div class="msec">Histórico de Movimentações <span id="m-cnt">0</span></div>
    <div id="m-timeline"></div>
    <div class="edit-form" id="m-form"></div>
@@ -545,6 +571,50 @@ function mkCard(x,idx){
   return h;
 }
 // MODAL MOVIMENTAÇÃO
+function toggleEditDados(){
+  var sec=document.getElementById("edit-dados-section");
+  var btn=document.getElementById("btn-toggle-edit");
+  var visible=sec.style.display!=="none";
+  sec.style.display=visible?"none":"block";
+  btn.textContent=visible?"✏️ Editar dados do processo":"🔼 Fechar edição";
+}
+function salvarDadosModal(){
+  if(MI===null)return;
+  var x=D[MI];
+  var agora=new Date().toLocaleString("pt-BR",{timeZone:"America/Sao_Paulo",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  var usuario=MODO==="p"?"Paulo":"Matheus";
+  var mudancas=[];
+  var campos={
+    "ed-nome":"razao_social","ed-tese":"tese","ed-num":"numero_processo",
+    "ed-cnpj":"cnpj","ed-honor":"honorarios","ed-prazo":"data_prazo","ed-status":"status"
+  };
+  Object.keys(campos).forEach(function(id){
+    var el=document.getElementById(id);
+    if(!el)return;
+    var val=el.value.trim();
+    var campo=campos[id];
+    if(val!==(x[campo]||"").toString()){
+      mudancas.push(campo.replace("_"," ")+": "+val);
+      x[campo]=val;
+    }
+  });
+  if(mudancas.length===0){toast("Nenhuma alteração detectada","#8b949e");return;}
+  x.data_atualizacao=new Date().toISOString().split("T")[0];
+  if(x.status==="Pendência PH") x.prioridade=true;
+  var reg="["+agora+"] "+usuario+": Dados editados — "+mudancas.join(" | ");
+  x.historico=((x.historico?x.historico+"\n":"")+reg).trim();
+  // Atualizar cabeçalho do modal
+  document.getElementById("m-nome").textContent=x.razao_social||"";
+  document.getElementById("m-tese").textContent=x.tese||"";
+  document.getElementById("m-num").textContent=x.numero_processo?"📋 "+x.numero_processo:"";
+  document.getElementById("m-cnt").textContent=contMov(x);
+  document.getElementById("m-timeline").innerHTML=mkTimeline(x);
+  // Fechar seção de edição
+  document.getElementById("edit-dados-section").style.display="none";
+  document.getElementById("btn-toggle-edit").textContent="✏️ Editar dados do processo";
+  toast("✅ Dados atualizados!","#3fb950");
+  renderBoard();
+}
 function abrirModal(idx){
   MI=idx; var x=D[idx];
   document.getElementById("m-nome").textContent=x.razao_social||"";
@@ -553,7 +623,18 @@ function abrirModal(idx){
   document.getElementById("m-star").textContent=x.prioridade?"⭐":"☆";
   document.getElementById("m-cnt").textContent=contMov(x);
   document.getElementById("m-timeline").innerHTML=mkTimeline(x);
+  // Preencher campos de edição
+  document.getElementById("ed-nome").value=x.razao_social||"";
+  document.getElementById("ed-tese").value=x.tese||"";
+  document.getElementById("ed-num").value=x.numero_processo||"";
+  document.getElementById("ed-cnpj").value=x.cnpj||"";
+  document.getElementById("ed-honor").value=x.honorarios||"";
+  document.getElementById("ed-prazo").value=x.data_prazo||"";
   var stsel=SL.map(function(s){return "<option"+(x.status===s?" selected":"")+">"+s+"</option>";}).join("");
+  document.getElementById("ed-status").innerHTML=stsel;
+  // Fechar seção de edição ao abrir novo modal
+  document.getElementById("edit-dados-section").style.display="none";
+  document.getElementById("btn-toggle-edit").textContent="✏️ Editar dados do processo";
   document.getElementById("m-form").innerHTML=
     "<label>Novo Status</label><select id='es_m'>"+stsel+"</select>"+
     "<label>Movimentação / Observação</label>"+
