@@ -554,7 +554,8 @@ function salvarNovo(){
     var payload={
       razao_social:nome,tese:tese,
       numero_processo:novo.numero_processo,
-      data_prazo:prazo,observacao:obs,status:st
+      data_prazo:prazo,observacao:obs,status:st,
+      historico:novo.historico
     };
     fetch("https://api.base44.com/api/apps/6a0e3ef6bb37789b7478edbb/functions/criarEventoCalendar",{
       method:"POST",
