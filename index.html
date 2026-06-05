@@ -182,6 +182,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .toggle-edit{background:none;border:1px solid var(--border);border-radius:7px;color:var(--text2);font-size:12px;cursor:pointer;padding:5px 12px;margin-bottom:10px;transition:all .15s}
 .toggle-edit:hover{border-color:#388bfd;color:#388bfd}
 
+
+/* ====== EDIÇÃO DO HISTÓRICO ====== */
+.titem{position:relative}
+.btn-edit-hist{position:absolute;top:6px;right:4px;background:none;border:1px solid transparent;border-radius:6px;color:#444;font-size:12px;cursor:pointer;padding:2px 7px;opacity:0;transition:opacity .15s,border-color .15s,color .15s;line-height:1.4}
+.titem:hover .btn-edit-hist{opacity:1}
+.btn-edit-hist:hover{border-color:#388bfd;color:#388bfd}
+.hist-edit-box{margin-top:8px;display:none}
+.hist-edit-box textarea{width:100%;background:#0d1117;border:1px solid #388bfd;border-radius:8px;color:var(--text);padding:10px;font-size:13px;line-height:1.6;resize:vertical;box-sizing:border-box;font-family:inherit}
+.hist-edit-btns{display:flex;gap:8px;margin-top:6px}
+.hist-edit-btns button{flex:1;border:none;border-radius:7px;padding:7px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-hv-salvar{background:#238636;color:#fff}
+.btn-hv-salvar:hover{background:#2ea043}
+.btn-hv-cancel{background:#21262d;color:var(--text2);border:1px solid var(--border)!important}
+.btn-hv-cancel:hover{border-color:#888!important}
+.btn-hv-excluir{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)!important;flex:0 0 auto;padding:7px 14px}
+.btn-hv-excluir:hover{background:rgba(248,81,73,.3)}
+
 </style>
 </head>
 <body>
@@ -767,19 +784,33 @@ function fecharConfirm(){
 function mkTimeline(x){
   if(!x.historico||!x.historico.trim())return"<div class='no-hist'>Nenhuma movimentação registrada ainda.</div>";
   var texto=x.historico.trim();
-  // Detectar se tem formato estruturado [data] usuario: ...
   var temFormato=/\[\d{2}\/\d{2}\/\d{4}/.test(texto);
   if(!temFormato){
-    // Texto livre da planilha — exibir como bloco de anotações
-    return "<div class='hist-livre'>"+esc(texto)+"</div>";
+    // Texto livre — bloco único editável
+    var hid="hist-livre-"+MI;
+    var h="<div class='hist-livre' id='hliv-txt'>"+esc(texto)+"</div>";
+    h+="<div class='hist-edit-box' id='hliv-box'>";
+    h+="<textarea id='hliv-ta' rows='6'>"+esc(texto)+"</textarea>";
+    h+="<div class='hist-edit-btns'>";
+    h+="<button class='btn-hv-salvar' onclick='salvarHistLivre()'>💾 Salvar</button>";
+    h+="<button class='btn-hv-cancel' onclick='cancelHistLivre()'>Cancelar</button>";
+    h+="</div></div>";
+    h+="<button class='toggle-edit' style='margin-top:8px' onclick='editarHistLivre()'>✏️ Editar anotação</button>";
+    return h;
   }
-  var linhas=texto.split("\n").filter(function(l){return l.trim();}).reverse();
+  var linhas=texto.split("\n").filter(function(l){return l.trim();});
+  var total=linhas.length;
+  // Exibir do mais recente ao mais antigo
   var h="<div class='timeline'>";
-  for(var i=0;i<linhas.length;i++){
+  for(var i=total-1;i>=0;i--){
     var l=linhas[i].trim();
     var m=l.match(/^\[([^\]]+)\]\s*([^:]+):\s*(.*)$/);
-    var cls="titem"+(i===linhas.length-1?" ultimo":"");
-    h+="<div class='"+cls+"'>";
+    var isUltimo=(i===0);
+    var cls="titem"+(isUltimo?" ultimo":"");
+    var linhaIdx=i; // índice real na linha
+    h+="<div class='"+cls+"' id='titem-"+i+"'>";
+    // botão editar
+    h+="<button class='btn-edit-hist' onclick='editarLinha("+i+")' title='Editar esta entrada'>✏️</button>";
     if(m){
       h+="<div class='t-data'>"+esc(m[1])+"</div>";
       h+="<span class='t-user'>"+esc(m[2])+"</span>";
@@ -789,16 +820,85 @@ function mkTimeline(x){
       var c2=gc(stT);
       if(stT&&COR[stT]){
         h+="<span class='t-stbdg' style='background:"+c2.bg+";color:"+c2.c+";border:1px solid "+c2.bdr+"'>"+esc(stT)+"</span>";
-        if(obsT)h+="<div class='t-obs'>"+esc(obsT)+"</div>";
+        if(obsT)h+="<div class='t-obs' id='tobs-"+i+"'>"+esc(obsT)+"</div>";
       } else {
-        if(m[3])h+="<div class='t-obs'>"+esc(m[3])+"</div>";
+        if(m[3])h+="<div class='t-obs' id='tobs-"+i+"'>"+esc(m[3])+"</div>";
       }
     } else {
-      h+="<div class='t-obs'>"+esc(l)+"</div>";
+      h+="<div class='t-obs' id='tobs-"+i+"'>"+esc(l)+"</div>";
     }
+    // Área de edição (oculta)
+    h+="<div class='hist-edit-box' id='hedit-"+i+"'>";
+    h+="<textarea id='hta-"+i+"' rows='4'>"+esc(l)+"</textarea>";
+    h+="<div class='hist-edit-btns'>";
+    h+="<button class='btn-hv-salvar' onclick='salvarLinha("+i+")'>💾 Salvar</button>";
+    h+="<button class='btn-hv-cancel' onclick='cancelLinha("+i+")'>Cancelar</button>";
+    h+="<button class='btn-hv-excluir' onclick='excluirLinha("+i+")' title='Excluir esta entrada'>🗑️</button>";
+    h+="</div></div>";
     h+="</div>";
   }
   return h+"</div>";
+}
+
+// ---- Edição de histórico livre (planilha) ----
+function editarHistLivre(){
+  document.getElementById("hliv-txt").style.display="none";
+  document.getElementById("hliv-box").style.display="block";
+}
+function cancelHistLivre(){
+  document.getElementById("hliv-box").style.display="none";
+  document.getElementById("hliv-txt").style.display="block";
+}
+function salvarHistLivre(){
+  if(MI===null)return;
+  var val=document.getElementById("hliv-ta").value.trim();
+  D[MI].historico=val;
+  D[MI].data_atualizacao=new Date().toISOString().split("T")[0];
+  document.getElementById("m-timeline").innerHTML=mkTimeline(D[MI]);
+  document.getElementById("m-cnt").textContent=contMov(D[MI]);
+  toast("✅ Anotação atualizada!","#3fb950");
+  renderBoard();
+}
+
+// ---- Edição de linha estruturada ----
+function editarLinha(li){
+  // Fechar qualquer outra aberta
+  document.querySelectorAll(".hist-edit-box").forEach(function(el){el.style.display="none";});
+  var box=document.getElementById("hedit-"+li);
+  if(box) box.style.display="block";
+  var ta=document.getElementById("hta-"+li);
+  if(ta){ta.focus();ta.selectionStart=ta.value.length;}
+}
+function cancelLinha(li){
+  var box=document.getElementById("hedit-"+li);
+  if(box) box.style.display="none";
+}
+function salvarLinha(li){
+  if(MI===null)return;
+  var ta=document.getElementById("hta-"+li);
+  if(!ta)return;
+  var novo=ta.value.trim();
+  if(!novo){excluirLinha(li);return;}
+  var linhas=D[MI].historico.trim().split("\n").filter(function(l){return l.trim();});
+  linhas[li]=novo;
+  D[MI].historico=linhas.join("\n");
+  D[MI].data_atualizacao=new Date().toISOString().split("T")[0];
+  document.getElementById("m-timeline").innerHTML=mkTimeline(D[MI]);
+  document.getElementById("m-cnt").textContent=contMov(D[MI]);
+  toast("✅ Entrada atualizada!","#3fb950");
+  renderBoard();
+}
+function excluirLinha(li){
+  if(MI===null)return;
+  if(!confirm("Excluir esta entrada do histórico?"))return;
+  var linhas=D[MI].historico.trim().split("\n").filter(function(l){return l.trim();});
+  linhas.splice(li,1);
+  D[MI].historico=linhas.join("\n");
+  D[MI].data_atualizacao=new Date().toISOString().split("T")[0];
+  document.getElementById("m-timeline").innerHTML=mkTimeline(D[MI]);
+  document.getElementById("m-cnt").textContent=contMov(D[MI]);
+  toast("🗑️ Entrada removida","#f85149");
+  renderBoard();
 }
 
 var CLIENTES=[{"n": "3J TRANSPORTE E SERVICOS LTDA", "c": ""}, {"n": "3M COMERCIO DE FRUTAS LTDA", "c": ""}, {"n": "ADIAL - ASSOCIACAO PRO - DESENVOLVIMENTO INDUSTR DO EST GOIAS", "c": ""}, {"n": "AJ TRANSPORTES E LOCACOES LTDA", "c": ""}, {"n": "AKRON PHARMA S/A", "c": ""}, {"n": "AMBEV S.A", "c": ""}, {"n": "ARCO IRIS PETR\u00d3LEO COMERCIO E SERVICOS LTDA (Gustavo)", "c": ""}, {"n": "ARROZ IMPERIAL LTDA", "c": ""}, {"n": "ARTE TRIGO INDUSTRIAL LTDA - ME", "c": ""}, {"n": "AUTO POSTO ALEMAO (JO'SE CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO BRISA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO CENTRO OESTE LTDA (Gabriel)", "c": ""}, {"n": "AUTO POSTO COMERCIAL GITIRANA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO DERIVADOS DE PETROLEO CALIFORNIA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO ESMERALDAS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO G & REZENDE (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO LEONEL (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO M-04 LTDA (Murilo)", "c": ""}, {"n": "AUTO POSTO MOZARLANDIA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO NOVA CRIXAS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO NOVA ESPERAN\u00c7A 04 (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AUTO POSTO VEIGA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "AVICULTURA INDUSTRIAL JOSIDITH LTDA S/A", "c": ""}, {"n": "BAGOLELE SORVETES INDUSTRIA E COMERCIO LTADA", "c": ""}, {"n": "BELMA INDUSTRIAL DE GENEROS ALIMENTICIOS LTDA", "c": ""}, {"n": "BIO INSTINTO INDUSTRIA E COMERCIO DE COSMETICOS LTDA", "c": ""}, {"n": "BLUE EMPREENDIMENTOS E PARTICIPACOES LTDA (CERVEJA PROIBIDA)", "c": ""}, {"n": "BORGES DAHER COM\u00c9RCIO DE DERIVADOS DE PETR\u00d3LEO LTDA - ME", "c": ""}, {"n": "BRASIL PETRO COMERCIO DE COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "BRG BRASIL GERADORES LTDA", "c": ""}, {"n": "CAF\u00c9 MOINHO FINO (Dicasa Industria e Comercio de Alimentos Ltda)", "c": ""}, {"n": "CARAMURU ALIMENTOS S/A", "c": ""}, {"n": "CARPER INDUSTRIA E COMERCIO DE PRODUTOS ALIMENTICIOS E BEBIDAS LTDA", "c": ""}, {"n": "CENTRO AIDAR INDUSTRIA E COMERCIO DE BEBIDAS LTDA (Elias Aidar)", "c": ""}, {"n": "CENTRO FORTE DISTRIBUI\u00c7\u00c30 DE ALIMENTOS LTDA", "c": ""}, {"n": "CENTRO OESTE OLEO QUIMICA LTDA (PRODUTOS OESTE HIGIENE E LIMPEZA)", "c": ""}, {"n": "CENTROX INDUSTRIA E COMERCIO LTDA", "c": ""}, {"n": "CERVEJARIA CIDADE IMPERIAL S/A", "c": ""}, {"n": "CICOPAL INDUSTRIA E COMERCIO DE PRODUTOS ALIMENTICIOS E HIGIENE PESSOAL LTDA", "c": ""}, {"n": "CMP METALGRAPHICA PAULISTA LTDA", "c": ""}, {"n": "COIMBRA IMPORTACAO E EXPORTACAO LTDA", "c": ""}, {"n": "COMERCIAL DE DERIVADOS DE PETR\u00d3LEO S\u00c3O CARLOS LTDA (POSTO PRESIDENTE)", "c": ""}, {"n": "CRYSTAL INDUSTRIA E COMERCIO DE BEBIDAS E ALIMENTOS LTDA (Elias Aidar)", "c": ""}, {"n": "D QUALIDADE INDUSTRIA E COMERCIO LTDA", "c": ""}, {"n": "DISTRIBUIDORA DE OVOS S\u00c3O JORGE LTDA", "c": ""}, {"n": "F G COMERCIAL DE ALIMENTOS LTDA (FLORESTA SUPERMERCADO)", "c": ""}, {"n": "FEIRA BOA INDUSTRIA DE PRODUTOS ALIMENTICIOS LTDA incorporada pela \nVVC EMPREENDIMENTOS LTDA (Holding)", "c": ""}, {"n": "FERREIRA & FERREIRA COLETORA DE RESIDUOS LTDA (TUPY)", "c": ""}, {"n": "FERRO E ACO ELDORADO INDUSTRIA E COMERCIO LTDA", "c": ""}, {"n": "FIBRAS TANQUES E PIAS LTDA", "c": ""}, {"n": "FLORAX E GLOBO COMERCIO DE PAPEIS", "c": ""}, {"n": "FLX TRANSPORTES LTDA", "c": ""}, {"n": "FORT ATACADO DE SECOS E MOLHADOS LTDA", "c": ""}, {"n": "GEOLAB IND\u00daSTRIA FARMAC\u00caUTICA S/A", "c": ""}, {"n": "GOIAS ALIMENTOS S/A", "c": ""}, {"n": "GOLD PACK EMBALAGENS", "c": ""}, {"n": "GOPA INDUSTRIA E COMERCIO DE BEBIDAS LTDA", "c": ""}, {"n": "GRANJA JOSIDHT LTDA", "c": ""}, {"n": "I. S. G CABRAL TRANSPORTES LTDA", "c": ""}, {"n": "ISAAC E MACEDO LTDA - P\u00c3O GUARANY", "c": ""}, {"n": "J.D. DISTRIBUIDORA DE ALIMENTOS LTDA", "c": ""}, {"n": "JC DISTRIBUICAO LOGISTICA IMPORTACAO E EXPORTACAO DE PRODUTOS INDUSTRIALIZADOS SA", "c": ""}, {"n": "JK MATERIAIS DE CONSTRU\u00c7\u00c3O", "c": ""}, {"n": "KOLORE INDUSTRIA E COMERCIO LTDA", "c": ""}, {"n": "L C LOGISTICA DE COMERCIO DE COMBUSTIVEL (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "L T LOGISTICA DE COMERCIO DE COMBUSTIVEL (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "MA DISTRIBUI\u00c7\u00c3O DE ALIMENTOS LTDA", "c": ""}, {"n": "MARAJOARA IND\u00daSTRIA DE LATIC\u00cdNIOS LTDA", "c": ""}, {"n": "MARIM CENTRAL DE ALIMENTOS LTDA", "c": ""}, {"n": "MAX DISTRIBUIDORA (AMIGO JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "MILHAO INDUSTRIA E COMERCIO DE INGREDIENTES E CEREAIS S.A.", "c": ""}, {"n": "MODENA\u00a0&\u00a0SILVA\u00a0LTDA - ME", "c": ""}, {"n": "MONTENEGRO COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "NORTE SUL PNEUS (IBRAIM)", "c": ""}, {"n": "NOVA CASA DISTRIBUIDORA DE MATERIAIS PARA CONSTRUCAO S/A", "c": ""}, {"n": "PADRA E OLIVEIRA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "PALO ALTO COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "PASADENA COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "PEAK AUTOMOTIVA LTDA", "c": ""}, {"n": "PLUMATEX COLCHOES INDUSTRIAL LTDA", "c": ""}, {"n": "PORTO & PEREIRA LTDA", "c": ""}, {"n": "POSTO E AUTO PE\u00c7AS ALTENSE (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "POSTO LAGOA BONITA (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "POSTO MANGUEIRAO LTDA (Murilo)", "c": ""}, {"n": "POSTO MONTENEGRO (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "POSTO NOSSA SENHORA DO CARMO (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "POSTO VALE DO ARAGUAIA LTDA (Murilo)", "c": ""}, {"n": "PREMIUM COMERCIP DE COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "PRIME DERIVADOS DE PETROLEO LTDA (Gustavo)", "c": ""}, {"n": "PUJANTE TRANSPORTES LTDA", "c": ""}, {"n": "REDE BRASIL DISTRIBUICAO E LOGISTICA LTDA", "c": ""}, {"n": "RIO VERMELHO DISTRIBUI\u00c7\u00c3O DE ALIMENTOS LTDA", "c": ""}, {"n": "ROAN ALIMENTOS LTDA", "c": ""}, {"n": "RODA MAIS PNEUS (IBRAIM)", "c": ""}, {"n": "ROSA DE OURO DISTRIBUICAO E LOGISTICA LTDA", "c": ""}, {"n": "SABOR E ARTE - Quality Industria de Alimentos Ltda", "c": ""}, {"n": "SACRAMENTO COMBUSTIVEIS E LUBRIFICANTES (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "SANTO ANT\u00d4NIO HIPERMERCADO", "c": ""}, {"n": "SILVA LINHARES E DINIZ (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "SINDICATO DA INDUSTRIA DA ALIMENTACAO DE ANAPOLIS", "c": ""}, {"n": "SNACKS PRODUTOS ALIMENTICIOS LTDA", "c": ""}, {"n": "SUPER VI DISTRIBUIDOR DE ALIMENTOS LTDA", "c": ""}, {"n": "SUPERMERCADO DS LTDA (Contador Carlinhos)", "c": ""}, {"n": "SUPERMERCADO MOREIRA LTDA", "c": ""}, {"n": "S\u00c3O BERNARDINO COMBUST\u00cdVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "S\u00c3O SALVADOR ALIMENTOS S/A", "c": ""}, {"n": "TRR KRUPINSKI - Com\u00e9rcio de Combust\u00edveis Krupinski Ltda", "c": ""}, {"n": "TR\u00caS BARRAS COMBUSTIVEIS (JOS\u00c9 CARLOS CONTADOR)", "c": ""}, {"n": "TUPY GERENCIAMENTO DE RESIDUOS E RECICLAGEM LTDA", "c": ""}, {"n": "TUPY TRANSPORTES DE RESIDUOS LTDA.", "c": ""}, {"n": "VIA CARPE INDUSTRIA E COM\u00c9RCIO DE PRODUTOS ALIMENT\u00cdCIOS LTDA", "c": ""}, {"n": "VIT\u00d3RIA COMBUST\u00cdVEIS LTDA-ME (Murilo)", "c": ""}, {"n": "WE PINK SAVI COSMESTICOS LTDA", "c": ""}, {"n": "WPINK SUPLEMENTOS NUTRICIONAIS LTDA", "c": ""}, {"n": "ZALTANA INDUSTRIA E COMERCIO DE ALIMENTOS S/A", "c": ""}];
