@@ -6,7 +6,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Amaral & Puga — Processos v3</title>
+<title>Amaral & Puga — Processos v4</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;min-height:100vh}
@@ -908,7 +908,15 @@ function persistirNoBanco(p){
       data_atualizacao:p.data_atualizacao||"",
       data_prazo:p.data_prazo||""
     })
-  }).catch(function(e){ console.warn("Erro ao salvar no banco:",e); });
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(resp){
+    if(!resp.ok) toast("❌ Erro ao salvar: "+JSON.stringify(resp.error),"#f85149");
+  })
+  .catch(function(e){
+    toast("❌ Falha de conexão: "+e.message,"#f85149");
+    console.error("Erro persistirNoBanco:",e);
+  });
 }
 
 function criarNoBanco(p, cb){
@@ -932,9 +940,18 @@ function criarNoBanco(p, cb){
   })
   .then(function(r){ return r.json(); })
   .then(function(resp){
-    if(cb) cb(resp.ok && resp.data ? resp.data : null);
+    if(resp.ok && resp.data){
+      if(cb) cb(resp.data);
+    } else {
+      toast("❌ Erro ao salvar no banco: "+JSON.stringify(resp.error),"#f85149");
+      if(cb) cb(null);
+    }
   })
-  .catch(function(e){ console.warn("Erro ao criar no banco:",e); if(cb) cb(null); });
+  .catch(function(e){
+    toast("❌ Falha de conexão ao salvar: "+e.message,"#f85149");
+    console.error("Erro criarNoBanco:",e);
+    if(cb) cb(null);
+  });
 }
 
 function deletarNoBanco(id){
