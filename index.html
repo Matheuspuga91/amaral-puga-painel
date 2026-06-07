@@ -677,6 +677,7 @@ function togStarModal(){
   document.getElementById("m-timeline").innerHTML=mkTimeline(x);
   document.getElementById("m-cnt").textContent=contMov(x);
   toast(x.prioridade?"⭐ Adicionado à Pendência do Paulo!":"☆ Removido da Pendência do Paulo","#f0b429");
+  persistirNoBanco(x);
   renderBoard();
 }
 function togStar(idx,ev){if(ev)ev.stopPropagation();MI=idx;togStarModal();MI=null;}
