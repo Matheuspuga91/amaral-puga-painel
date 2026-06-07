@@ -362,11 +362,27 @@ function entrar(){
   else if(u==="paulo"&&pw==="paulo2026")MODO="p";
   else{document.getElementById("lerr").style.display="block";return;}
   document.getElementById("lerr").style.display="none";
-  document.getElementById("login").style.display="none";
+  // Mostrar loading enquanto carrega do banco
   var ap=document.getElementById("app");ap.style.display="flex";
   document.getElementById("unm").textContent=MODO==="m"?"Matheus":"Paulo H.";
   document.getElementById("sub").textContent=MODO==="m"?"Painel Completo":"Suas Pendências — Paulo Henrique";
-  setupBar(); renderBoard();
+  setupBar();
+  // Carregar dados atuais do banco
+  fetch("https://base44.app/api/apps/6a0e3ef6bb37789b7478edbb/functions/processosCRUD", {
+    method: "GET",
+    headers: {"Content-Type":"application/json"}
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(resp){
+    if(resp.ok && resp.data && resp.data.length > 0){
+      D = resp.data;
+    }
+    renderBoard();
+  })
+  .catch(function(){
+    // Se falhar, usa os dados embutidos
+    renderBoard();
+  });
 }
 function sair(){
   document.getElementById("login").style.display="flex";
